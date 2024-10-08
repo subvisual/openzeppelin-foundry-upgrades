@@ -9,12 +9,14 @@ import {IBeacon} from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import {AddressRegistrySimulator} from "./contracts/AddressRegistrySimulator.sol";
 import {Greeter} from "./contracts/Greeter.sol";
 import {GreeterProxiable} from "./contracts/GreeterProxiable.sol";
 import {GreeterV2} from "./contracts/GreeterV2.sol";
 import {GreeterV2Proxiable} from "./contracts/GreeterV2Proxiable.sol";
 import {WithConstructor, NoInitializer} from "./contracts/WithConstructor.sol";
 import {HasOwner} from "./contracts/HasOwner.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {strings} from "solidity-stringutils/src/strings.sol";
 
@@ -47,6 +49,40 @@ contract UpgradesTest is Test {
 
         assertEq(instance.greeting(), "resetted");
         assertFalse(implAddressV2 == implAddressV1);
+    }
+
+    function testDeterministicUUPS() public {
+        Options memory opts;
+        opts.defender.salt = 0xabc0000000000000000000000000000000000000000000000000000000000123;
+
+        bytes memory bytecodeAddressRegistrySimulator = abi.encodePacked(type(AddressRegistrySimulator).creationCode);
+
+        address targetImplementation = getAddress( address(this), bytecodeAddressRegistrySimulator, opts.defender.salt);
+
+        bytes memory initData = abi.encodePacked(
+            AddressRegistrySimulator.initialize.selector,
+            abi.encode(msg.sender)
+        );
+
+        bytes memory bytecodeERC1967Proxy = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(targetImplementation, initData));
+
+        address targetProxy = getAddress( address(this), bytecodeERC1967Proxy, opts.defender.salt);
+
+        // deploy proxy
+        address proxy = Upgrades.deployUUPSProxy(
+            "AddressRegistrySimulator.sol",
+            abi.encodeCall(AddressRegistrySimulator.initialize, (msg.sender)),
+            opts
+        );
+
+        assertEq(proxy, targetProxy);
+    }
+
+    function getAddress(address _deployer, bytes memory _bytecode, bytes32 _salt) public pure returns (address) {
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), _deployer, _salt, keccak256(_bytecode)));
+
+        // NOTE: cast last 20 bytes of hash to address
+        return address(uint160(uint256(hash)));
     }
 
     function testUUPS_upgradeWithoutData() public {
