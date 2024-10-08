@@ -53,7 +53,7 @@ contract UpgradesTest is Test {
 
     function testDeterministicUUPS() public {
         Options memory opts;
-        opts.defender.salt = 0xabc0000000000000000000000000000000000000000000000000000000000123;
+        opts.customSalt = 0xabc0000000000000000000000000000000000000000000000000000000000123;
 
         bytes memory bytecodeAddressRegistrySimulator = abi.encodePacked(type(AddressRegistrySimulator).creationCode);
 

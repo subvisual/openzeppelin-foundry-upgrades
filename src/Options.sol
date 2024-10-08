@@ -66,6 +66,11 @@ struct Options {
      * Options for OpenZeppelin Defender deployments.
      */
     DefenderOptions defender;
+
+    /*
+    * When set, uses CREATE2 for deployment with the provided salt.
+    */
+    bytes32 customSalt;
 }
 
 /**

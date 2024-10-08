@@ -423,7 +423,7 @@ library Core {
         return inputs;
     }
 
-    // subvisual change: originally `deploy` ignore options when it's not using DefenderDeploy. Since `salt` is defined there, we'll explicity pass the salt option to a new function `_deploy`
+    // subvisual change: added customSalt parameter to Options struct and use it to determine whether to deploy with CREATE2
     function deploy(
         string memory contractName,
         bytes memory constructorData,
@@ -432,7 +432,7 @@ library Core {
         if (opts.defender.useDefenderDeploy) {
             return DefenderDeploy.deploy(contractName, constructorData, opts.defender);
         } else {
-            if (opts.defender.salt != 0) {
+            if (opts.customSalt != 0) {
                 return _deployWithCreate2(contractName, constructorData, opts.defender.salt);
             } else {
                 return _deploy(contractName, constructorData);
