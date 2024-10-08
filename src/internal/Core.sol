@@ -423,6 +423,7 @@ library Core {
         return inputs;
     }
 
+    // subvisual change: added customSalt parameter to Options struct and use it to determine whether to deploy with CREATE2
     function deploy(
         string memory contractName,
         bytes memory constructorData,
@@ -431,8 +432,37 @@ library Core {
         if (opts.defender.useDefenderDeploy) {
             return DefenderDeploy.deploy(contractName, constructorData, opts.defender);
         } else {
-            return _deploy(contractName, constructorData);
+            if (opts.customSalt != 0) {
+                return _deployWithCreate2(contractName, constructorData, opts.defender.salt);
+            } else {
+                return _deploy(contractName, constructorData);
+            }
         }
+    }
+
+    function _deployWithCreate2(string memory contractName, bytes memory constructorData, bytes32 salt) private returns (address) {
+        bytes memory creationCode = Vm(Utils.CHEATCODE_ADDRESS).getCode(contractName);
+        address deployedAddress = _deployFromBytecodeWithCreate2(abi.encodePacked(creationCode, constructorData), uint256(salt));
+        if (deployedAddress == address(0)) {
+            revert(
+                string.concat(
+                    "Failed to deploy contract ",
+                    contractName,
+                    ' using constructor data "',
+                    string(constructorData),
+                    '"'
+                )
+            );
+        }
+        return deployedAddress;
+    }
+
+    function _deployFromBytecodeWithCreate2(bytes memory bytecode, uint256 salt) private returns (address) {
+        address addr;
+        assembly {
+            addr := create2(0, add(bytecode, 32), mload(bytecode), salt)
+        }
+        return addr;
     }
 
     function _deploy(string memory contractName, bytes memory constructorData) private returns (address) {
