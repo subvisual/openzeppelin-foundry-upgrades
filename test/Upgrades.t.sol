@@ -57,7 +57,7 @@ contract UpgradesTest is Test {
 
         bytes memory bytecodeAddressRegistrySimulator = abi.encodePacked(type(AddressRegistrySimulator).creationCode);
 
-        address targetImplementation = getAddress( address(this), bytecodeAddressRegistrySimulator, opts.defender.salt);
+        address targetImplementation = getAddress( address(this), bytecodeAddressRegistrySimulator, opts.customSalt);
 
         bytes memory initData = abi.encodePacked(
             AddressRegistrySimulator.initialize.selector,
@@ -66,7 +66,7 @@ contract UpgradesTest is Test {
 
         bytes memory bytecodeERC1967Proxy = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(targetImplementation, initData));
 
-        address targetProxy = getAddress( address(this), bytecodeERC1967Proxy, opts.defender.salt);
+        address targetProxy = getAddress( address(this), bytecodeERC1967Proxy, opts.customSalt);
 
         // deploy proxy
         address proxy = Upgrades.deployUUPSProxy(
