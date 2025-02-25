@@ -433,7 +433,7 @@ library Core {
             return DefenderDeploy.deploy(contractName, constructorData, opts.defender);
         } else {
             if (opts.customSalt != 0) {
-                return _deployWithCreate2(contractName, constructorData, opts.defender.salt);
+                return _deployWithCreate2(contractName, constructorData, opts.customSalt);
             } else {
                 return _deploy(contractName, constructorData);
             }
